@@ -71,6 +71,7 @@ func emojiName() {
                 case 1, 9, 17, 23, 24, 25,26,27, 31, 34, 37:
                     var randomTop = Int.random(in: 0..<vehicles.count)
                     guard var randomString = emojis.randomElement() else { return }
+                    //could also code: var randomString = emojis.randomElement() ?? "" - since it's an optional, needs a case for null; even though string is full, you never know what goes wrong
                     print(charAt(randomString, randomTop), terminator: "")
                     
                 default:
