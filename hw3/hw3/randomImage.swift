@@ -26,6 +26,8 @@ class ImageLoader: ObservableObject {
         }
     }
     
+    //async - needs placeholder
+    
     func loadImages() async {
         for urlString in albumStrings {
             if let url = URL(string: urlString),
