@@ -170,7 +170,7 @@ ScrollView {
                     
                     //test view image: imageLoader.albums[0].cover
                     //for real code: album.cover
-                    Image(uiImage: imageLoader.albums[0].cover)
+                    Image(uiImage: album.cover)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: 175, height: 175)
