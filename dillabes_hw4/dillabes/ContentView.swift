@@ -58,13 +58,8 @@ struct ContentView: View {
                     if let albumID = selectedAlbumID,
                        let album = imageLoader.albums.first(where: {$0.name == albumID})
                     {
-                        AlbumView(albumName: album.name,
-                                  albumLink: album.audio,
-                                  albumImage: album.cover,
-                                  albumArtist: album.artist,
-                                  year: album.year,
-                                  tracklist: album.trackList,
-                                  notes: album.notes
+                        AlbumView(
+                            album: album
                         )
                         
                     }
