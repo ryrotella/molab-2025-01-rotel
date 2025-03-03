@@ -34,7 +34,7 @@ func imageFor(string str: String) async -> UIImage!  {
 }
 
 struct AlbumView: View {
-  @StateObject private var imageLoader = ImageLoader()
+//  @StateObject private var imageLoader = ImageLoader()
   let album: Album
 //  @State private var soundFile: String
   @State private var player: AVAudioPlayer? = nil
@@ -59,6 +59,7 @@ struct AlbumView: View {
           .ignoresSafeArea()
         VStack(spacing: 0) {
           // Progress bar
+          // !!@ Why does this not show?
           ProgressView(
             value: player?.currentTime ?? 0, total: player?.duration ?? 100
           )
@@ -100,7 +101,7 @@ struct AlbumView: View {
                 .lineSpacing(2)
               }
               //Tracks and Notes
-              AlbumTrackNotesView(album: album)
+//              AlbumTrackNotesView(album: album)
               //Spacer()
               // Artist and release info
               HStack {
@@ -123,13 +124,19 @@ struct AlbumView: View {
               //test view image: imageLoader.albums[0].cover
               //for real code: album.cover
               if let uiImage = uiImage {
-                AlbumCoverView(uiImage: uiImage, isPlaying: isPlaying)
+                if isPlaying {
+                  AlbumCoverAnimatedView(uiImage: uiImage)
+                  //  AlbumCoverView(uiImage: uiImage, isPlaying: $isPlaying)
+                }
+                else {
+                  AlbumCoverStaticView(uiImage: uiImage)
+                }
               }
             }
           }
-          .task {
-            await imageLoader.loadImages()
-          }
+//          .task {
+//            await imageLoader.loadImages()
+//          }
         }
       }
     }
@@ -143,12 +150,21 @@ struct AlbumView: View {
   AlbumView(album: modalSoul)
 }
 
+// Deal with rotation animation start/stop with own timer
+// replaced by AlbumCoverAnimatedView and AlbumCoverStaticView
+//
 struct AlbumCoverView: View {
   //  let album: Album
   var uiImage:UIImage
-  var isPlaying: Bool = false
+  @Binding var isPlaying: Bool
+//  var isPlaying: Bool = false
   @State private var rotation: Double = 0
-  @State private var rotationTimer: Timer? = nil
+//  @State private var rotationTimer: Timer? = nil
+  private var animation: Animation {
+    .linear
+    .speed(0.1)
+    .repeatForever(autoreverses: false)
+  }
   var body: some View {
     let _ = Self._printChanges()
     Image(uiImage: uiImage)
@@ -160,29 +176,87 @@ struct AlbumCoverView: View {
       .shadow(radius: 8)
       .offset(y: 100)
       .onChange(of: isPlaying) { _, newValue in
-        if newValue {
-          // Start rotation timer when playing
-          rotationTimer = Timer.scheduledTimer(
-            withTimeInterval: 0.05, repeats: true
-          ) { _ in
-            rotation += 1
-            if rotation >= 360 {
-              rotation = 0
-            }
+        print("AlbumCoverView onChange isPlaying: \(isPlaying)")
+        if isPlaying {
+          withAnimation(animation) {
+            rotation = 360.0
           }
-        } else {
-          // Stop rotation timer when paused
-          rotationTimer?.invalidate()
-          rotationTimer = nil
         }
       }
-      .onDisappear {
-        // Clean up timer when view disappears
-        rotationTimer?.invalidate()
-        rotationTimer = nil
-      }
+//      .onChange(of: isPlaying) { _, newValue in
+//        if newValue {
+//          // Start rotation timer when playing
+//          rotationTimer = Timer.scheduledTimer(
+//            withTimeInterval: 0.05, repeats: true
+//          ) { _ in
+//            rotation += 1
+//            if rotation >= 360 {
+//              rotation = 0
+//            }
+//          }
+//        } else {
+//          // Stop rotation timer when paused
+//          rotationTimer?.invalidate()
+//          rotationTimer = nil
+//        }
+//      }
+//      .onDisappear {
+//        // Clean up timer when view disappears
+//        rotationTimer?.invalidate()
+//        rotationTimer = nil
+//      }
       .onAppear {
-        print("uiImage", uiImage)
+        print("AlbumCoverView uiImage", uiImage)
+        print("AlbumCoverView isPlaying", isPlaying)
+          withAnimation(animation) {
+            rotation = 360.0
+          }
+      }
+  }
+}
+
+struct AlbumCoverAnimatedView: View {
+  //  let album: Album
+  var uiImage:UIImage
+  @State private var rotation: Double = 0
+  private var animation: Animation {
+    .linear
+    .speed(0.1)
+    .repeatForever(autoreverses: false)
+  }
+  var body: some View {
+    let _ = Self._printChanges()
+    Image(uiImage: uiImage)
+      .resizable()
+      .aspectRatio(contentMode: .fill)
+      .frame(width: 175, height: 175)
+      .clipShape(Circle())
+      .rotationEffect(.degrees(rotation))
+      .shadow(radius: 8)
+      .offset(y: 100)
+      .onAppear {
+        print("AlbumCoverAnimatedView uiImage", uiImage)
+        withAnimation(animation) {
+          rotation = 360.0
+        }
+      }
+  }
+}
+
+struct AlbumCoverStaticView: View {
+  //  let album: Album
+  var uiImage:UIImage
+  var body: some View {
+    let _ = Self._printChanges()
+    Image(uiImage: uiImage)
+      .resizable()
+      .aspectRatio(contentMode: .fill)
+      .frame(width: 175, height: 175)
+      .clipShape(Circle())
+      .shadow(radius: 8)
+      .offset(y: 100)
+      .onAppear {
+        print("AlbumCoverStaticView uiImage", uiImage)
       }
   }
 }
