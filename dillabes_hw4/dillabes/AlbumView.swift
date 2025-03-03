@@ -34,9 +34,9 @@ func imageFor(string str: String) async -> UIImage!  {
 }
 
 struct AlbumView: View {
-//  @StateObject private var imageLoader = ImageLoader()
+  //  @StateObject private var imageLoader = ImageLoader()
   let album: Album
-//  @State private var soundFile: String
+  //  @State private var soundFile: String
   @State private var player: AVAudioPlayer? = nil
   //added by Claude.ai
   @State private var audioLevel: CGFloat = 0.0
@@ -45,11 +45,11 @@ struct AlbumView: View {
   @State var uiImage:UIImage?
   
   // Initialize in init() - from Claude.ai - https://claude.ai/chat/e766c9c2-73ba-41d5-bbe7-b45328331871
-//  init(album: Album) {
-//    self.album = album
-//    // Initialize the @State property
-//    _soundFile = State(initialValue: self.album.audio)
-//  }
+  //  init(album: Album) {
+  //    self.album = album
+  //    // Initialize the @State property
+  //    _soundFile = State(initialValue: self.album.audio)
+  //  }
   
   var body: some View {
     let _ = Self._printChanges()
@@ -101,7 +101,7 @@ struct AlbumView: View {
                 .lineSpacing(2)
               }
               //Tracks and Notes
-//              AlbumTrackNotesView(album: album)
+              //              AlbumTrackNotesView(album: album)
               //Spacer()
               // Artist and release info
               HStack {
@@ -124,7 +124,7 @@ struct AlbumView: View {
               //test view image: imageLoader.albums[0].cover
               //for real code: album.cover
               if let uiImage = uiImage {
-//                  AlbumCoverView(uiImage: uiImage, isPlaying: $isPlaying)
+                //                  AlbumCoverView(uiImage: uiImage, isPlaying: $isPlaying)
                 if isPlaying {
                   AlbumCoverAnimatedView(uiImage: uiImage)
                 }
@@ -134,9 +134,9 @@ struct AlbumView: View {
               }
             }
           }
-//          .task {
-//            await imageLoader.loadImages()
-//          }
+          //          .task {
+          //            await imageLoader.loadImages()
+          //          }
         }
       }
     }
