@@ -124,9 +124,9 @@ struct AlbumView: View {
               //test view image: imageLoader.albums[0].cover
               //for real code: album.cover
               if let uiImage = uiImage {
+//                  AlbumCoverView(uiImage: uiImage, isPlaying: $isPlaying)
                 if isPlaying {
                   AlbumCoverAnimatedView(uiImage: uiImage)
-                  //  AlbumCoverView(uiImage: uiImage, isPlaying: $isPlaying)
                 }
                 else {
                   AlbumCoverStaticView(uiImage: uiImage)
@@ -157,9 +157,8 @@ struct AlbumCoverView: View {
   //  let album: Album
   var uiImage:UIImage
   @Binding var isPlaying: Bool
-//  var isPlaying: Bool = false
   @State private var rotation: Double = 0
-//  @State private var rotationTimer: Timer? = nil
+  @State private var rotationTimer: Timer? = nil
   private var animation: Animation {
     .linear
     .speed(0.1)
@@ -183,34 +182,36 @@ struct AlbumCoverView: View {
           }
         }
       }
-//      .onChange(of: isPlaying) { _, newValue in
-//        if newValue {
-//          // Start rotation timer when playing
-//          rotationTimer = Timer.scheduledTimer(
-//            withTimeInterval: 0.05, repeats: true
-//          ) { _ in
-//            rotation += 1
-//            if rotation >= 360 {
-//              rotation = 0
-//            }
-//          }
-//        } else {
-//          // Stop rotation timer when paused
-//          rotationTimer?.invalidate()
-//          rotationTimer = nil
-//        }
-//      }
-//      .onDisappear {
-//        // Clean up timer when view disappears
-//        rotationTimer?.invalidate()
-//        rotationTimer = nil
-//      }
+      .onChange(of: isPlaying) { _, newValue in
+        if newValue {
+          // Start rotation timer when playing
+          rotationTimer = Timer.scheduledTimer(
+            withTimeInterval: 0.05, repeats: true
+          ) { _ in
+            rotation += 1
+            if rotation >= 360 {
+              rotation = 0
+            }
+          }
+        } else {
+          // Stop rotation timer when paused
+          rotationTimer?.invalidate()
+          rotationTimer = nil
+        }
+      }
+      .onDisappear {
+        // Clean up timer when view disappears
+        rotationTimer?.invalidate()
+        rotationTimer = nil
+      }
       .onAppear {
         print("AlbumCoverView uiImage", uiImage)
         print("AlbumCoverView isPlaying", isPlaying)
+        if isPlaying {
           withAnimation(animation) {
             rotation = 360.0
           }
+        }
       }
   }
 }
