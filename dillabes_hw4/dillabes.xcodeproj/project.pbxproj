@@ -27,6 +27,7 @@
 		176D84232D6C2374003159F8 /* dillabes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dillabes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		176D84242D6C2374003159F8 /* dillabesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dillabesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		176D84252D6C2374003159F8 /* dillabesUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dillabesUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB99A64F2D755418009D1389 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -65,6 +66,7 @@
 		170C0D342D6A8E1A00935488 = {
 			isa = PBXGroup;
 			children = (
+				AB99A64F2D755418009D1389 /* README.md */,
 				170C0D3F2D6A8E1A00935488 /* dillabes */,
 				176D84232D6C2374003159F8 /* dillabes.app */,
 				176D84242D6C2374003159F8 /* dillabesTests.xctest */,
