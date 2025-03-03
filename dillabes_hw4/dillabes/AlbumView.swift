@@ -21,23 +21,36 @@ func loadBundleAudio(_ fileName: String) -> AVAudioPlayer? {
   return nil
 }
 
+// From 05-ImageEditDemo
+// Read in an image from a url string
+func imageFor(string str: String) async -> UIImage!  {
+  guard let url = URL(string: str),
+        let imgData = try? Data(contentsOf: url),
+        let uiImage = UIImage(data:imgData)
+  else {
+    return nil
+  }
+  return uiImage
+}
+
 struct AlbumView: View {
   @StateObject private var imageLoader = ImageLoader()
   let album: Album
-  @State private var soundFile: String
+//  @State private var soundFile: String
   @State private var player: AVAudioPlayer? = nil
   //added by Claude.ai
   @State private var audioLevel: CGFloat = 0.0
   @State private var isPlaying: Bool = false
   @State private var currentTrackIndex: Int = 0
-
+  @State var uiImage:UIImage?
+  
   // Initialize in init() - from Claude.ai - https://claude.ai/chat/e766c9c2-73ba-41d5-bbe7-b45328331871
-  init(album: Album) {
-    self.album = album
-    // Initialize the @State property
-    _soundFile = State(initialValue: self.album.audio)
-  }
-
+//  init(album: Album) {
+//    self.album = album
+//    // Initialize the @State property
+//    _soundFile = State(initialValue: self.album.audio)
+//  }
+  
   var body: some View {
     let _ = Self._printChanges()
     ScrollView {
@@ -62,7 +75,8 @@ struct AlbumView: View {
               HStack {
                 Button("Play") {
                   print("Button Play")
-                  player = loadBundleAudio(soundFile)
+                  player = loadBundleAudio(album.audio)
+                  // player = loadBundleAudio(soundFile)
                   print("player", player as Any)
                   // Loop indefinitely
                   //player?.numberOfLoops = -1
@@ -86,7 +100,7 @@ struct AlbumView: View {
                 .lineSpacing(2)
               }
               //Tracks and Notes
-//              AlbumTrackNotesView(album: album)
+              AlbumTrackNotesView(album: album)
               //Spacer()
               // Artist and release info
               HStack {
@@ -108,15 +122,19 @@ struct AlbumView: View {
               Spacer()
               //test view image: imageLoader.albums[0].cover
               //for real code: album.cover
-              AlbumCoverView(album: album, isPlaying: isPlaying)
+              if let uiImage = uiImage {
+                AlbumCoverView(uiImage: uiImage, isPlaying: isPlaying)
+              }
             }
-
           }
           .task {
             await imageLoader.loadImages()
           }
         }
       }
+    }
+    .task {
+      uiImage =  await imageFor(string: album.imageLink)
     }
   }
 }
@@ -126,14 +144,14 @@ struct AlbumView: View {
 }
 
 struct AlbumCoverView: View {
-  let album: Album
+  //  let album: Album
+  var uiImage:UIImage
   var isPlaying: Bool = false
   @State private var rotation: Double = 0
   @State private var rotationTimer: Timer? = nil
-
   var body: some View {
     let _ = Self._printChanges()
-    Image(uiImage: album.cover)
+    Image(uiImage: uiImage)
       .resizable()
       .aspectRatio(contentMode: .fill)
       .frame(width: 175, height: 175)
@@ -164,7 +182,7 @@ struct AlbumCoverView: View {
         rotationTimer = nil
       }
       .onAppear {
-        print("album.cover", album.cover)
+        print("uiImage", uiImage)
       }
   }
 }
