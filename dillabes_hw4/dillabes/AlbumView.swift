@@ -30,8 +30,6 @@ struct AlbumView: View {
   @State private var audioLevel: CGFloat = 0.0
   @State private var isPlaying: Bool = false
   @State private var currentTrackIndex: Int = 0
-  @State private var rotation: Double = 0
-  @State private var rotationTimer: Timer? = nil
 
   // Initialize in init() - from Claude.ai - https://claude.ai/chat/e766c9c2-73ba-41d5-bbe7-b45328331871
   init(album: Album) {
@@ -88,21 +86,7 @@ struct AlbumView: View {
                 .lineSpacing(2)
               }
               //Tracks and Notes
-              HStack(alignment: .top) {
-                //Track List
-                VStack(alignment: .leading, spacing: 10) {
-                  Text("Track List")
-                    .font(.headline)
-                  ForEach(0..<album.trackList.count, id: \.self) { index in
-                    Text(album.trackList[index])
-                      .foregroundStyle(.primary)
-                    //onTapGesture{currentTrackIndex = index
-                    // Play the selected track playCurrentTrack()}
-                  }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-              }
-              .padding(.horizontal)
+//              AlbumTrackNotesView(album: album)
               //Spacer()
               // Artist and release info
               HStack {
@@ -115,6 +99,7 @@ struct AlbumView: View {
               }
               .padding(.horizontal)
               .padding(.bottom)
+              
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(UIColor.systemGray6))
@@ -123,36 +108,7 @@ struct AlbumView: View {
               Spacer()
               //test view image: imageLoader.albums[0].cover
               //for real code: album.cover
-              Image(uiImage: album.cover)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 175, height: 175)
-                .clipShape(Circle())
-                .rotationEffect(.degrees(rotation))
-                .shadow(radius: 8)
-                .offset(y: 100)
-                .onChange(of: isPlaying) { _, newValue in
-                  if newValue {
-                    // Start rotation timer when playing
-                    rotationTimer = Timer.scheduledTimer(
-                      withTimeInterval: 0.05, repeats: true
-                    ) { _ in
-                      rotation += 1
-                      if rotation >= 360 {
-                        rotation = 0
-                      }
-                    }
-                  } else {
-                    // Stop rotation timer when paused
-                    rotationTimer?.invalidate()
-                    rotationTimer = nil
-                  }
-                }
-                .onDisappear {
-                  // Clean up timer when view disappears
-                  rotationTimer?.invalidate()
-                  rotationTimer = nil
-                }
+              AlbumCoverView(album: album, isPlaying: isPlaying)
             }
 
           }
@@ -167,4 +123,69 @@ struct AlbumView: View {
 
 #Preview {
   AlbumView(album: modalSoul)
+}
+
+struct AlbumCoverView: View {
+  let album: Album
+  var isPlaying: Bool = false
+  @State private var rotation: Double = 0
+  @State private var rotationTimer: Timer? = nil
+
+  var body: some View {
+    let _ = Self._printChanges()
+    Image(uiImage: album.cover)
+      .resizable()
+      .aspectRatio(contentMode: .fill)
+      .frame(width: 175, height: 175)
+      .clipShape(Circle())
+      .rotationEffect(.degrees(rotation))
+      .shadow(radius: 8)
+      .offset(y: 100)
+      .onChange(of: isPlaying) { _, newValue in
+        if newValue {
+          // Start rotation timer when playing
+          rotationTimer = Timer.scheduledTimer(
+            withTimeInterval: 0.05, repeats: true
+          ) { _ in
+            rotation += 1
+            if rotation >= 360 {
+              rotation = 0
+            }
+          }
+        } else {
+          // Stop rotation timer when paused
+          rotationTimer?.invalidate()
+          rotationTimer = nil
+        }
+      }
+      .onDisappear {
+        // Clean up timer when view disappears
+        rotationTimer?.invalidate()
+        rotationTimer = nil
+      }
+      .onAppear {
+        print("album.cover", album.cover)
+      }
+  }
+}
+
+struct AlbumTrackNotesView: View {
+  let album: Album
+  var body: some View {
+    HStack(alignment: .top) {
+      //Track List
+      VStack(alignment: .leading, spacing: 10) {
+        Text("Track List")
+          .font(.headline)
+        ForEach(0..<album.trackList.count, id: \.self) { index in
+          Text(album.trackList[index])
+            .foregroundStyle(.primary)
+          //onTapGesture{currentTrackIndex = index
+          // Play the selected track playCurrentTrack()}
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    .padding(.horizontal)
+  }
 }

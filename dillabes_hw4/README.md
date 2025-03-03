@@ -4,6 +4,9 @@
 
 Debugging AlbumView for flashing during audio playback
 
+!! album.cover
+album.cover is empty
+
 >> let _ = Self._printChanges()
 Added for debuggin
 
