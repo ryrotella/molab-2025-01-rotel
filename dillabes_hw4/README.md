@@ -21,7 +21,7 @@ Where is this shown in the view?
 # research animation
 # [05-Heart-Shapes](https://github.com/molab-itp/05-Heart-Shapes)
 
-[animation repeatforever docs]https://developer.apple.com/documentation/swiftui/animation/repeatforever(autoreverses:)
+[animation repeatforever docs](https://developer.apple.com/documentation/swiftui/animation/repeatforever(autoreverses:))
 >> extracted AnimationDemo
 
 # AlbumCoverView replaced by AlbumCoverAnimatedView and AlbumCoverStaticView
