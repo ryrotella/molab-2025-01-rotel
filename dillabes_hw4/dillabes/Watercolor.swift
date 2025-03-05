@@ -52,6 +52,7 @@ struct WatercolorShape: Shape {
 
 
 struct WatercolorBackground: View {
+
     @State private var animate = false
     
 //    var randomColor = CGFloat.random(in: 0.2...0.9)
@@ -64,6 +65,8 @@ struct WatercolorBackground: View {
     ]
     
     var body: some View {
+      let _ = Self._printChanges()
+
         ZStack {
             ForEach(0..<3) { index in
                 WatercolorShape(seed: index)

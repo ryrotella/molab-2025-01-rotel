@@ -53,27 +53,33 @@ struct AlbumView: View {
   
   var body: some View {
     let _ = Self._printChanges()
-    ScrollView {
-      ZStack {
-        WatercolorBackground()
-          .ignoresSafeArea()
-        VStack(spacing: 0) {
-          // Progress bar
-          // !!@ Why does this not show?
-          ProgressView(
-            value: player?.currentTime ?? 0, total: player?.duration ?? 100
-          )
-          .padding(.horizontal)
-          .padding(.top)
-          AlbumExtractedView(album: album, player: $player, isPlaying: $isPlaying, uiImage: uiImage)
-          //          .task {
-          //            await imageLoader.loadImages()
-          //          }
+    TimelineView(.animation) { timeline in
+      ScrollView {
+        ZStack {
+//          WatercolorBackground()
+//            .ignoresSafeArea()
+          VStack(spacing: 0) {
+            // Progress bar
+            // !!@ Why does this not show?
+            // see use of TimelineView 04-Audio-State-Demo / PlayAudioDJView
+            //
+            if let player {
+              ProgressView(
+                value: player.currentTime, total: player.duration
+              )
+              .padding(.horizontal)
+              .padding(.top)
+            }
+            AlbumExtractedView(album: album, player: $player, isPlaying: $isPlaying, uiImage: uiImage)
+            //          .task {
+            //            await imageLoader.loadImages()
+            //          }
+          }
         }
       }
-    }
-    .task {
-      uiImage =  await imageFor(string: album.imageLink)
+      .task {
+        uiImage =  await imageFor(string: album.imageLink)
+      }
     }
   }
 }
@@ -84,41 +90,12 @@ struct AlbumExtractedView: View {
   @Binding var isPlaying: Bool
   var uiImage:UIImage?
   var body: some View {
+    let _ = Self._printChanges()
     ZStack {
       //main content area
       VStack(alignment: .center, spacing: 20) {
         //Now playing bar - eventually want to do each song but just playing an album for right now
-        Text("Playing: \(album.name) by \(album.artist)")
-          .font(.headline)
-          .padding(.top)
-          .padding(.horizontal)
-        HStack {
-          Button("Play") {
-            print("Button Play")
-            player = loadBundleAudio(album.audio)
-            // player = loadBundleAudio(soundFile)
-            print("player", player as Any)
-            // Loop indefinitely
-            //player?.numberOfLoops = -1
-            player?.play()
-            isPlaying = true
-          }
-          Button("Stop") {
-            print("Button Stop")
-            player?.stop()
-            isPlaying = false
-          }
-        }
-        //Text("soundIndex \(soundIndex)")
-        //Text(soundFile)
-        if let player = player {
-          Text("duration " + String(format: "%.1f", player.duration))
-            .lineSpacing(2)
-          Text(
-            "currentTime " + String(format: "%.1f", player.currentTime)
-          )
-          .lineSpacing(2)
-        }
+        AlbumMainView(album: album, player: $player, isPlaying: $isPlaying)
         //Tracks and Notes
         // AlbumTrackNotesView(album: album)
         //Spacer()
@@ -151,6 +128,47 @@ struct AlbumExtractedView: View {
             AlbumCoverStaticView(uiImage: uiImage)
           }
         }
+      }
+    }
+  }
+}
+
+struct AlbumMainView: View {
+  let album: Album
+  @Binding var player: AVAudioPlayer?
+  @Binding var isPlaying: Bool
+  var body: some View {
+    Group {
+      Text("Playing: \(album.name) by \(album.artist)")
+        .font(.headline)
+        .padding(.top)
+        .padding(.horizontal)
+      HStack {
+        Button("Play") {
+          print("Button Play")
+          player = loadBundleAudio(album.audio)
+          // player = loadBundleAudio(soundFile)
+          print("player", player as Any)
+          // Loop indefinitely
+          //player?.numberOfLoops = -1
+          player?.play()
+          isPlaying = true
+        }
+        Button("Stop") {
+          print("Button Stop")
+          player?.stop()
+          isPlaying = false
+        }
+      }
+      //Text("soundIndex \(soundIndex)")
+      //Text(soundFile)
+      if let player = player {
+        Text("duration " + String(format: "%.1f", player.duration))
+          .lineSpacing(2)
+        Text(
+          "currentTime " + String(format: "%.1f", player.currentTime)
+        )
+        .lineSpacing(2)
       }
     }
   }
@@ -292,4 +310,5 @@ struct AlbumTrackNotesView: View {
     .padding(.horizontal)
   }
 }
+
 
