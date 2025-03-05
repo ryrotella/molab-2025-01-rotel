@@ -65,75 +65,7 @@ struct AlbumView: View {
           )
           .padding(.horizontal)
           .padding(.top)
-          ZStack {
-            //main content area
-            VStack(alignment: .center, spacing: 20) {
-              //Now playing bar - eventually want to do each song but just playing an album for right now
-              Text("Playing: \(album.name) by \(album.artist)")
-                .font(.headline)
-                .padding(.top)
-                .padding(.horizontal)
-              HStack {
-                Button("Play") {
-                  print("Button Play")
-                  player = loadBundleAudio(album.audio)
-                  // player = loadBundleAudio(soundFile)
-                  print("player", player as Any)
-                  // Loop indefinitely
-                  //player?.numberOfLoops = -1
-                  player?.play()
-                  isPlaying = true
-                }
-                Button("Stop") {
-                  print("Button Stop")
-                  player?.stop()
-                  isPlaying = false
-                }
-              }
-              //Text("soundIndex \(soundIndex)")
-              //Text(soundFile)
-              if let player = player {
-                Text("duration " + String(format: "%.1f", player.duration))
-                  .lineSpacing(2)
-                Text(
-                  "currentTime " + String(format: "%.1f", player.currentTime)
-                )
-                .lineSpacing(2)
-              }
-              //Tracks and Notes
-              //              AlbumTrackNotesView(album: album)
-              //Spacer()
-              // Artist and release info
-              HStack {
-                Text(album.artist)
-                  .font(.headline)
-                Spacer()
-                Text("Released:\n\(album.year)")
-                  .font(.headline)
-                  .multilineTextAlignment(.trailing)
-              }
-              .padding(.horizontal)
-              .padding(.bottom)
-              
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(UIColor.systemGray6))
-            // Spinning record at the bottom
-            VStack {
-              Spacer()
-              //test view image: imageLoader.albums[0].cover
-              //for real code: album.cover
-              if let uiImage = uiImage {
-                //                  AlbumCoverView(uiImage: uiImage, isPlaying: $isPlaying)
-                if isPlaying {
-                  AlbumCoverAnimatedView(uiImage: uiImage)
-                }
-                else {
-                  AlbumCoverStaticView(uiImage: uiImage)
-                }
-              }
-            }
-          }
+          AlbumExtractedView(album: album, player: $player, isPlaying: $isPlaying, uiImage: uiImage)
           //          .task {
           //            await imageLoader.loadImages()
           //          }
@@ -142,6 +74,84 @@ struct AlbumView: View {
     }
     .task {
       uiImage =  await imageFor(string: album.imageLink)
+    }
+  }
+}
+
+struct AlbumExtractedView: View {
+  let album: Album
+  @Binding var player: AVAudioPlayer?
+  @Binding var isPlaying: Bool
+  var uiImage:UIImage?
+  var body: some View {
+    ZStack {
+      //main content area
+      VStack(alignment: .center, spacing: 20) {
+        //Now playing bar - eventually want to do each song but just playing an album for right now
+        Text("Playing: \(album.name) by \(album.artist)")
+          .font(.headline)
+          .padding(.top)
+          .padding(.horizontal)
+        HStack {
+          Button("Play") {
+            print("Button Play")
+            player = loadBundleAudio(album.audio)
+            // player = loadBundleAudio(soundFile)
+            print("player", player as Any)
+            // Loop indefinitely
+            //player?.numberOfLoops = -1
+            player?.play()
+            isPlaying = true
+          }
+          Button("Stop") {
+            print("Button Stop")
+            player?.stop()
+            isPlaying = false
+          }
+        }
+        //Text("soundIndex \(soundIndex)")
+        //Text(soundFile)
+        if let player = player {
+          Text("duration " + String(format: "%.1f", player.duration))
+            .lineSpacing(2)
+          Text(
+            "currentTime " + String(format: "%.1f", player.currentTime)
+          )
+          .lineSpacing(2)
+        }
+        //Tracks and Notes
+        // AlbumTrackNotesView(album: album)
+        //Spacer()
+        // Artist and release info
+        HStack {
+          Text(album.artist)
+            .font(.headline)
+          Spacer()
+          Text("Released:\n\(album.year)")
+            .font(.headline)
+            .multilineTextAlignment(.trailing)
+        }
+        .padding(.horizontal)
+        .padding(.bottom)
+        
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .background(Color(UIColor.systemGray6))
+      // Spinning record at the bottom
+      VStack {
+        Spacer()
+        //test view image: imageLoader.albums[0].cover
+        //for real code: album.cover
+        if let uiImage = uiImage {
+          // AlbumCoverView(uiImage: uiImage, isPlaying: $isPlaying)
+          if isPlaying {
+            AlbumCoverAnimatedView(uiImage: uiImage)
+          }
+          else {
+            AlbumCoverStaticView(uiImage: uiImage)
+          }
+        }
+      }
     }
   }
 }
@@ -282,3 +292,4 @@ struct AlbumTrackNotesView: View {
     .padding(.horizontal)
   }
 }
+
