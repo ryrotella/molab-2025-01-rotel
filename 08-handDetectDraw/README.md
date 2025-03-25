@@ -1,4 +1,4 @@
-#  [08-handDetectDraw](https://github.com/ryrotella/08-handDetectDraw)
+#  [08-handDetectDraw](https://github.com/ryrotella/molab-2025-01-rotel/tree/main/08-handDetectDraw)
 
 An app that uses Vision to map out hand poses. Users can change color and line width of drawings over a hand. 
 
