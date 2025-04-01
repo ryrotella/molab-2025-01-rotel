@@ -32,7 +32,7 @@ struct ContentView: View {
     var body: some View {
         
         
-        ZStack(alignment: .bottom) {
+        ZStack {
             
             ScannerView(handPoseInfo: $handPoseInfo, handPoints: $handPoints)
             
@@ -86,82 +86,87 @@ struct ContentView: View {
                 .padding()
                 .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
-                .padding(.top, 10)
-                .position(x: 200, y: 100)
+                .padding(.top, 50)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+               // .position(x: 200, y: 100)
+            
+            Spacer()
+            VStack {
+                    Slider(
+                        value: $lineWidth,
+                        in: 1...60,
+                        onEditingChanged: { editing in
+                            isEditing = editing
+                        }
+                    )
+                    Text("Line Width: \(lineWidth)")
+                        .foregroundColor(isEditing ? .red : .blue)
+                }
+            .background(.white)
+            .frame(maxWidth: 350, maxHeight: .infinity, alignment: .bottom)
+            .padding(.bottom, 80)
+           // .position(x: 150, y: 450)
+            //.frame(width: 350)
+            
+            //MARK: Color Picker
+            VStack(spacing: 20) {
+                
+                //button for color picker
+                Button {
+                    showColorPicker = true
+                } label: {
+                    Text("Pick A Color!")
+                }
+                .foregroundStyle(.white)
+                .padding()
+                .background(RoundedRectangle(cornerRadius: 16).fill(.black).stroke(.gray.opacity(0.4), style: .init(lineWidth: 2.0)))
+
+            }
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .background(.clear)
+            .sheet(isPresented: $showColorPicker, content: {
+                ColorPickerView(
+                    title: "My Picker",
+                    selectedColor: selectedColor,
+                    didSelectColor: { color in
+                        self.selectedColor = color
+                    }
+                )
+                .padding(.top, 8)
+                .background(.white)
+                .interactiveDismissDisabled(false)
+                .presentationDetents([.height(640)])
+                //whites out dropper icon
+                .overlay(alignment: .topLeading, content: {
+                    Rectangle()
+                        .fill(.white)
+                        .frame(height: 56)
+                        .frame(maxWidth: 50)
+                })
+                //close button
+                .overlay(alignment: .topTrailing, content: {
+                    Button(action: {
+                        showColorPicker = false
+                    }, label: {
+                        Image(systemName: "xmark")
+
+                    })
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.gray.opacity(0.8))
+                    .padding(.all, 8)
+                    .background(Circle().fill(.gray.opacity(0.2)))
+                    .padding()
+                })
+                
+            })
             
         }
         .edgesIgnoringSafeArea(.all)
         
         //MARK: Line Width Slider
         
-        VStack {
-                Slider(
-                    value: $lineWidth,
-                    in: 1...60,
-                    onEditingChanged: { editing in
-                        isEditing = editing
-                    }
-                )
-                Text("Line Width: \(lineWidth)")
-                    .foregroundColor(isEditing ? .red : .blue)
-            }
-        .background(.white)
-        //.frame(maxWidth: 350, maxHeight: .infinity, alignment: .bottom)
-        .position(x: 150, y: 450)
-        .frame(width: 350)
-        
-        //MARK: Color Picker
-        VStack(spacing: 80) {
-            
-            //button for color picker
-            Button {
-                showColorPicker = true
-            } label: {
-                Text("Pick A Color!")
-            }
-            .foregroundStyle(.white)
-            .padding()
-            .background(RoundedRectangle(cornerRadius: 16).fill(.black).stroke(.gray.opacity(0.4), style: .init(lineWidth: 2.0)))
-
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-        .background(.clear)
-        .sheet(isPresented: $showColorPicker, content: {
-            ColorPickerView(
-                title: "My Picker",
-                selectedColor: selectedColor,
-                didSelectColor: { color in
-                    self.selectedColor = color
-                }
-            )
-            .padding(.top, 8)
-            .background(.white)
-            .interactiveDismissDisabled(false)
-            .presentationDetents([.height(640)])
-            //whites out dropper icon
-            .overlay(alignment: .topLeading, content: {
-                Rectangle()
-                    .fill(.white)
-                    .frame(height: 56)
-                    .frame(maxWidth: 50)
-            })
-            //close button
-            .overlay(alignment: .topTrailing, content: {
-                Button(action: {
-                    showColorPicker = false
-                }, label: {
-                    Image(systemName: "xmark")
-
-                })
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(.gray.opacity(0.8))
-                .padding(.all, 8)
-                .background(Circle().fill(.gray.opacity(0.2)))
-                .padding()
-            })
-            
-        })
+       
         
         
     }
