@@ -8,21 +8,81 @@
 import SwiftUI
 import WebKit
 
-// YouTube Player WebView
 struct YouTubePlayerView: UIViewRepresentable {
     let videoID: String
     
     func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView()
+        // Create a configuration with necessary settings
+        let configuration = WKWebViewConfiguration()
+        configuration.allowsInlineMediaPlayback = true
+        configuration.mediaTypesRequiringUserActionForPlayback = []
+        
+        // Add this line to allow fullscreen
+        configuration.allowsPictureInPictureMediaPlayback = true
+        
+        // Create the webview with the configuration
+        let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.scrollView.isScrollEnabled = false
         webView.allowsBackForwardNavigationGestures = false
         webView.allowsLinkPreview = false
+        
+        // Set the navigation delegate to handle fullscreen
+        webView.navigationDelegate = context.coordinator
+        
         return webView
     }
     
     func updateUIView(_ uiView: WKWebView, context: Context) {
-        guard let url = URL(string: "https://www.youtube.com/embed/\(videoID)?playsinline=1") else { return }
-        uiView.load(URLRequest(url: url))
+        // Create a more detailed HTML embed to handle fullscreen and autoplay controls properly
+        let html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <style>
+                body { margin: 0; padding: 0; background-color: black; }
+                .container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; }
+                iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <iframe src="https://www.youtube.com/embed/\(videoID)?playsinline=1&fs=1&rel=0" 
+                    frameborder="0" 
+                    allowfullscreen="true"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen">
+                </iframe>
+            </div>
+        </body>
+        </html>
+        """
+        
+        uiView.loadHTMLString(html, baseURL: nil)
+    }
+    
+    // Add a coordinator to handle fullscreen mode
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, WKNavigationDelegate {
+        var parent: YouTubePlayerView
+        
+        init(_ parent: YouTubePlayerView) {
+            self.parent = parent
+        }
+        
+        // This detects when the user taps the fullscreen button
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            // Optional JavaScript to improve fullscreen behavior
+            let script = """
+            var videoElements = document.getElementsByTagName('iframe');
+            for (var i = 0; i < videoElements.length; i++) {
+                videoElements[i].setAttribute('allowfullscreen', 'true');
+            }
+            """
+            webView.evaluateJavaScript(script, completionHandler: nil)
+        }
     }
 }
 
