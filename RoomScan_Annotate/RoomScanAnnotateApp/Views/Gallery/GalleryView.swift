@@ -14,7 +14,7 @@ struct GalleryView: View {
     @EnvironmentObject var dataStore: RoomDataStore
     @State private var showingScanner = false
     @State private var showingRenameAlert = false
-    @State private var selectedRoom: RoomModel?
+    @State private var selectedRoomId: UUID? = nil
     @State private var newRoomName = ""
     
     var body: some View {
@@ -29,23 +29,35 @@ struct GalleryView: View {
                     ForEach(dataStore.rooms) { room in
                         NavigationLink(destination: RoomDetailView(room: room)) {
                             RoomRow(room: room)
-                        }
-                        .contextMenu {
-                            Button(action: {
-                                selectedRoom = room
-                                newRoomName = room.name
-                                showingRenameAlert = true
-                            }) {
-                                Label("Rename", systemImage: "pencil")
-                            }
-                            
-                            Button(role: .destructive, action: {
-                                if let index = dataStore.rooms.firstIndex(where: { $0.id == room.id }) {
-                                    dataStore.deleteRoom(at: IndexSet([index]))
+                                .contentShape(Rectangle())
+                                .contextMenu {
+                                    Button(action: {
+                                        selectedRoomId = room.id
+                                        newRoomName = room.name
+                                        showingRenameAlert = true
+                                    }) {
+                                        Label("Rename", systemImage: "pencil")
+                                    }
+                                    
+                                    Button(role: .destructive, action: {
+                                        if let index = dataStore.rooms.firstIndex(where: { $0.id == room.id }) {
+                                            dataStore.deleteRoom(at: IndexSet([index]))
+                                        }
+                                    }) {
+                                        Label("Delete", systemImage: "trash")
+                                    }
                                 }
-                            }) {
-                                Label("Delete", systemImage: "trash")
-                            }
+                                // Add swipe actions for quick access to rename
+                                .swipeActions(edge: .leading) {
+                                    Button {
+                                        selectedRoomId = room.id
+                                        newRoomName = room.name
+                                        showingRenameAlert = true
+                                    } label: {
+                                        Label("Rename", systemImage: "pencil")
+                                    }
+                                    .tint(.blue)
+                                }
                         }
                     }
                     .onDelete(perform: dataStore.deleteRoom)
@@ -72,12 +84,15 @@ struct GalleryView: View {
                 TextField("Room Name", text: $newRoomName)
                 Button("Cancel", role: .cancel) {}
                 Button("Save") {
-                    if let room = selectedRoom {
-                        var updatedRoom = room
+                    if let roomId = selectedRoomId,
+                       let index = dataStore.rooms.firstIndex(where: { $0.id == roomId }) {
+                        var updatedRoom = dataStore.rooms[index]
                         updatedRoom.name = newRoomName
                         dataStore.updateRoom(updatedRoom)
                     }
                 }
+            } message: {
+                Text("Enter a new name for this room scan")
             }
         }
     }

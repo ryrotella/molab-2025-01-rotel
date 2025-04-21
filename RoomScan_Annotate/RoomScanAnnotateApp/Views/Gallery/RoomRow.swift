@@ -28,8 +28,16 @@ struct RoomRow: View {
             }
             
             VStack(alignment: .leading) {
-                Text(room.name)
-                    .font(.headline)
+                HStack {
+                    Text(room.name)
+                        .font(.headline)
+                    
+                    // Add a small edit icon to indicate the name can be edited
+                    Image(systemName: "pencil.circle.fill")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .opacity(0.6)
+                }
                 
                 Text("\(room.annotations.count) annotations")
                     .font(.subheadline)

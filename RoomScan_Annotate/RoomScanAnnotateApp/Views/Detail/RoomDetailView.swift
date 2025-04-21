@@ -58,6 +58,14 @@ struct RoomDetailView: View {
     // Add this state property to track annotations to delete
     @State private var annotationToDelete: UUID? = nil
     
+    @State private var isEditingTitle = false
+    @State private var newRoomTitle = ""
+    
+    @State private var showCameraDebug = false
+    @State private var cameraOffsetX: Double = 1.2
+    @State private var cameraOffsetY: Double = 0.8
+    @State private var cameraOffsetZ: Double = 1.2
+    
     var body: some View {
         VStack {
             // 3D Room View
@@ -225,14 +233,77 @@ struct RoomDetailView: View {
                                 }
                             }
                         }
+                        if showCameraDebug {
+                            VStack {
+                                Text("Camera Offset Tuning")
+                                    .font(.headline)
+                                
+                                HStack {
+                                    Text("X: \(cameraOffsetX, specifier: "%.1f")")
+                                    Slider(value: $cameraOffsetX, in: 0.1...3.0)
+                                }
+                                
+                                HStack {
+                                    Text("Y: \(cameraOffsetY, specifier: "%.1f")")
+                                    Slider(value: $cameraOffsetY, in: 0.1...3.0)
+                                }
+                                
+                                HStack {
+                                    Text("Z: \(cameraOffsetZ, specifier: "%.1f")")
+                                    Slider(value: $cameraOffsetZ, in: 0.1...3.0)
+                                }
+                                
+                                Button("Test Position") {
+                                    if let annotation = selectedAnnotation {
+                                        // Pass the current offset values to the navigate function
+                                        NotificationCenter.default.post(
+                                            name: .annotationSelected,
+                                            object: nil,
+                                            userInfo: [
+                                                "annotationId": annotation.id,
+                                                "offsetX": cameraOffsetX,
+                                                "offsetY": cameraOffsetY,
+                                                "offsetZ": cameraOffsetZ
+                                            ]
+                                        )
+                                    }
+                                }
+                            }
+                            .padding()
+                            .background(Color.black.opacity(0.7))
+                            .cornerRadius(10)
+                            .padding()
+                        }
                     }
                     .frame(height: 150)
                 }
             }
         }
-        .navigationTitle(room.name)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+            if isEditingTitle {
+                TextField("Room Name", text: $newRoomTitle, onCommit: {
+                    saveRoomTitle()
+                })
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .frame(width: 200)
+            } else {
+                Text(room.name)
+                    .font(.headline)
+                    .onTapGesture {
+                        newRoomTitle = room.name
+                        isEditingTitle = true
+                    }
+            }
+        }
             ToolbarItem(placement: .navigationBarTrailing) {
+            if isEditingTitle {
+                Button("Save") {
+                    saveRoomTitle()
+                }
+            } else {
+                // Your existing export button
                 Button(action: {
                     showingExportOptions = true
                 }) {
@@ -240,6 +311,25 @@ struct RoomDetailView: View {
                 }
             }
         }
+            // Add edit title button
+         ToolbarItem(placement: .navigationBarTrailing) {
+             if !isEditingTitle {
+                 Button(action: {
+                     newRoomTitle = room.name
+                     isEditingTitle = true
+                 }) {
+                     Image(systemName: "pencil")
+                 }
+             }
+         }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showCameraDebug.toggle()
+                }) {
+                    Image(systemName: "camera.metering.center.weighted")
+                }
+            }
+     }
         .sheet(isPresented: $showingAnnotationEditor) {
             annotationEditorView
         }
@@ -258,6 +348,15 @@ struct RoomDetailView: View {
             ])
         }
     }
+    
+    private func saveRoomTitle() {
+           // Only update if the title changed
+           if !newRoomTitle.isEmpty && newRoomTitle != room.name {
+               room.name = newRoomTitle
+               dataStore.updateRoom(room)
+           }
+           isEditingTitle = false
+       }
     
     private var annotationEditorView: some View {
         NavigationView {
@@ -341,6 +440,13 @@ struct RoomDetailView: View {
        
        // Update the selected annotation reference
        selectedAnnotation = updatedAnnotation
+        
+    // Notify observers that an annotation was updated
+        NotificationCenter.default.post(
+            name: .annotationUpdated,
+            object: nil,
+            userInfo: ["annotationId": annotation.id, "newText": newAnnotationText]
+        )
        
        print("Successfully updated annotation: \(updatedAnnotation.text)")
     }
@@ -349,8 +455,8 @@ struct RoomDetailView: View {
     func deleteAnnotation(_ annotation: Annotation) {
         print("Deleting annotation with ID: \(annotation.id)")
         
-//        // Set the annotation to delete first
-//        annotationToDelete = annotation.id
+        // Set the annotation to delete first
+        annotationToDelete = annotation.id
         
         // Remove from the annotations array
         room.annotations.removeAll(where: { $0.id == annotation.id })

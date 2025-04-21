@@ -49,6 +49,13 @@ struct RoomModelView: UIViewRepresentable {
                 name: .annotationSelected,
                 object: nil
             )
+            
+            NotificationCenter.default.addObserver(
+                context.coordinator,
+                selector: #selector(Coordinator.annotationUpdated(_:)),
+                name: .annotationUpdated,
+                object: nil
+            )
         
         // Add observer for annotation deletion
             NotificationCenter.default.addObserver(
@@ -116,17 +123,16 @@ struct RoomModelView: UIViewRepresentable {
     func updateUIView(_ sceneView: SCNView, context: Context) {
         // Store the current camera position and orientation
             let currentCamera = sceneView.pointOfView?.clone()
+        
+        // First, remove all existing annotation nodes to prevent duplicates
+            let existingAnnotationNodes = SceneHelper.findAnnotationNodes(in: sceneView.scene!.rootNode)
+        
+            for node in existingAnnotationNodes {
+                node.removeFromParentNode()
+            }
             
         // Check if we have an annotation to delete
                 if let idToDelete = annotationToDelete {
-                    // Find and remove nodes with this annotation ID
-                    let annotationNodes = SceneHelper.findAnnotationNodes(in: sceneView.scene!.rootNode)
-                        .filter { $0.annotationId == idToDelete }
-                    
-                    for node in annotationNodes {
-                        node.removeFromParentNode()
-                    }
-                    
                     // Reset the deletion tracking
                     DispatchQueue.main.async {
                         self.annotationToDelete = nil
@@ -141,7 +147,7 @@ struct RoomModelView: UIViewRepresentable {
                 // Highlight selected annotation
                 if selectedAnnotation?.id == annotation.id {
                     let highlightNode = SCNNode()
-                    highlightNode.geometry = SCNSphere(radius: 0.08)
+                    highlightNode.geometry = SCNSphere(radius: 0.09)
                     highlightNode.geometry?.firstMaterial?.diffuse.contents = UIColor.white.withAlphaComponent(0.3)
                     highlightNode.position = SCNVector3(annotation.position.x, annotation.position.y, annotation.position.z)
                     sceneView.scene?.rootNode.addChildNode(highlightNode)
@@ -192,12 +198,13 @@ struct RoomModelView: UIViewRepresentable {
                 // Highlight selected annotation
                 if selectedAnnotation?.id == annotation.id {
                     let highlightNode = SCNNode()
-                    highlightNode.geometry = SCNSphere(radius: 0.08)
+                    highlightNode.geometry = SCNSphere(radius: 0.09)
                     highlightNode.geometry?.firstMaterial?.diffuse.contents = UIColor.white.withAlphaComponent(0.3)
                     highlightNode.position = SCNVector3(annotation.position.x, annotation.position.y, annotation.position.z)
                     sceneView.scene?.rootNode.addChildNode(highlightNode)
                 }
             }
+        
         }
     
     func makeCoordinator() -> Coordinator {
@@ -228,7 +235,7 @@ struct RoomModelView: UIViewRepresentable {
         sphereNode.name = "sphere"
         
         // Add text label
-        let textGeometry = SCNText(string: annotation.text, extrusionDepth: 0.009)
+        let textGeometry = SCNText(string: annotation.text, extrusionDepth: 0.01)
         textGeometry.font = UIFont.systemFont(ofSize: 1.0)
         textGeometry.firstMaterial?.diffuse.contents = annotation.color.uiColor
         
@@ -237,12 +244,32 @@ struct RoomModelView: UIViewRepresentable {
         textNode.scale = SCNVector3(0.3, 0.3, 0.3)
         
         // Center the text
-        let (min, max) = textGeometry.boundingBox
-        let width = Float(max.x - min.x)
-        textNode.pivot = SCNMatrix4MakeTranslation(width/2, 0, 0)
+        let minBound = textGeometry.boundingBox.min
+        let maxBound = textGeometry.boundingBox.max
+        let textWidth = CGFloat(maxBound.x - minBound.x)
+        let textHeight = CGFloat(maxBound.y - minBound.y)
+        textNode.pivot = SCNMatrix4MakeTranslation((maxBound.x - minBound.x)/2, 0, 0)
+        
+        // Create a background plane for the text
+        let backgroundPlane = SCNPlane(width: textWidth + 0.5, height: textHeight + 0.5)
+        backgroundPlane.cornerRadius = 0.2
+        
+        // Set the background color - semi-transparent dark color works well
+        backgroundPlane.firstMaterial?.diffuse.contents = UIColor.black.withAlphaComponent(0.9)
+        let backgroundNode = SCNNode(geometry: backgroundPlane)
+        backgroundNode.name = "textBackground"
+        
+        // Position the background behind the text
+        backgroundNode.position = SCNVector3(Float(textWidth)/2, Float(textHeight)/2, -0.01)
+
+        // Group the text and its background
+        let textGroupNode = SCNNode()
+        textGroupNode.name = "textGroup"
+        textGroupNode.addChildNode(backgroundNode)
+        textGroupNode.addChildNode(textNode)
         
         // Position the text above the sphere
-        textNode.position = SCNVector3(0, 0.2, 0.25)
+        textNode.position = SCNVector3(0, 0.2, 0.3)
         
         // Create a billboard constraint so text always faces the camera
         let billboardConstraint = SCNBillboardConstraint()
@@ -284,57 +311,71 @@ struct RoomModelView: UIViewRepresentable {
             shouldRestoreCamera = true
         }
         
-        func navigateToAnnotation(_ annotation: Annotation) {
+        func navigateToAnnotation(_ annotation: Annotation, offsetX: Float = 1.2, offsetY: Float = 0.8, offsetZ: Float = 1.2) {
             guard let sceneView = sceneView else { return }
             
-            let position = SCNVector3(annotation.position.x, annotation.position.y, annotation.position.z)
+            let annotationPosition = SCNVector3(annotation.position.x, annotation.position.y, annotation.position.z)
             
-            // Create a new position slightly offset from the annotation to view it better
+            // Use a simpler approach with fixed offsets that work reliably
+            // Position the camera 2 units away from the annotation in a diagonal direction
+            
+            // Use the provided offset values
+            let cameraOffset = SCNVector3(offsetX, offsetY, offsetZ)
             let viewPosition = SCNVector3(
-                position.x - 0.8,
-                position.y + 0.6,
-                position.z - 1.9
+                annotationPosition.x - cameraOffset.x,
+                annotationPosition.y + cameraOffset.y,
+                annotationPosition.z - cameraOffset.z
             )
             
-            // Animate camera move to the annotation
+            // First move to an intermediate position to avoid clipping through walls
+            let intermediatePosition = SCNVector3(
+                (sceneView.pointOfView?.position.x ?? 0) * 0.3 + viewPosition.x * 0.7,
+                (sceneView.pointOfView?.position.y ?? 0) * 0.3 + viewPosition.y * 0.7,
+                (sceneView.pointOfView?.position.z ?? 0) * 0.3 + viewPosition.z * 0.7
+            )
+            
+            // Two-stage animation for smoother movement
             SCNTransaction.begin()
-            SCNTransaction.animationDuration = 0.5
-            sceneView.pointOfView?.position = viewPosition
-            
-            // Create a look-at point that's slightly in front of the annotation
-            // This prevents overshooting and keeps the annotation in view
-            let lookAtNode = SCNNode()
-            lookAtNode.position = position
-            sceneView.scene?.rootNode.addChildNode(lookAtNode)
-            
-            let lookAtConstraint = SCNLookAtConstraint(target: lookAtNode)
-            lookAtConstraint.isGimbalLockEnabled = true
-            sceneView.pointOfView?.constraints = [lookAtConstraint]
-            
-            SCNTransaction.commit()
-            
-            // After animation, remove the constraint
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                // Save the final orientation
-                let finalOrientation = sceneView.pointOfView?.orientation
+            SCNTransaction.animationDuration = 0.6
+            SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            sceneView.pointOfView?.position = intermediatePosition
+            SCNTransaction.completionBlock = {
+                // Second stage - move to final position
+                SCNTransaction.begin()
+                SCNTransaction.animationDuration = 0.4
+                sceneView.pointOfView?.position = viewPosition
                 
-                // Remove constraints
-                sceneView.pointOfView?.constraints = []
+                // Look directly at the annotation
+                let lookAt = SCNNode()
+                lookAt.position = annotationPosition
+                sceneView.scene?.rootNode.addChildNode(lookAt)
                 
-                // Maintain the camera's orientation
-                sceneView.pointOfView?.orientation = finalOrientation ?? SCNQuaternion()
+                let constraint = SCNLookAtConstraint(target: lookAt)
+                constraint.isGimbalLockEnabled = true
+                sceneView.pointOfView?.constraints = [constraint]
                 
-                // Remove the temporary node
-                lookAtNode.removeFromParentNode()
+                SCNTransaction.commit()
+                
+                // Clean up after animation
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    sceneView.pointOfView?.constraints = []
+                    lookAt.removeFromParentNode()
+                }
             }
+            SCNTransaction.commit()
         }
         
         @objc func annotationSelected(_ notification: Notification) {
             guard let annotationId = notification.userInfo?["annotationId"] as? UUID else { return }
             
+            // Extract optional camera offset parameters if provided
+            let offsetX = notification.userInfo?["offsetX"] as? Double ?? 1.2
+            let offsetY = notification.userInfo?["offsetY"] as? Double ?? 0.8
+            let offsetZ = notification.userInfo?["offsetZ"] as? Double ?? 1.2
+            
             // Find the annotation with this ID
             if let annotation = parent.room.annotations.first(where: { $0.id == annotationId }) {
-                navigateToAnnotation(annotation)
+                navigateToAnnotation(annotation, offsetX: Float(offsetX), offsetY: Float(offsetY), offsetZ: Float(offsetZ))
             }
         }
         
@@ -352,6 +393,30 @@ struct RoomModelView: UIViewRepresentable {
             }
             
             print("Removed \(nodesToRemove.count) nodes for deleted annotation with ID: \(annotationId)")
+        }
+        
+
+        @objc func annotationUpdated(_ notification: Notification) {
+            guard let sceneView = sceneView,
+                  let annotationId = notification.userInfo?["annotationId"] as? UUID,
+                  let newText = notification.userInfo?["newText"] as? String else { return }
+            
+            // Find all annotation nodes with this ID
+            let annotationNodes = SceneHelper.findAnnotationNodes(in: sceneView.scene!.rootNode)
+                .filter { $0.annotationId == annotationId }
+            
+            for node in annotationNodes {
+                // Find the text node (assuming it's a child with name "text")
+                if let textNode = node.childNodes.first(where: { $0.name == "text" }) {
+                    // Update the text content
+                    if let textGeometry = textNode.geometry as? SCNText {
+                        SCNTransaction.begin()
+                        SCNTransaction.animationDuration = 0.3
+                        textGeometry.string = newText
+                        SCNTransaction.commit()
+                    }
+                }
+            }
         }
         
         func deleteAnnotation(withId id: UUID) {
