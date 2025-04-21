@@ -17,6 +17,16 @@ extension Notification.Name {
     static let annotationAdded = Notification.Name("annotationAdded")
     static let annotationUpdated = Notification.Name("annotationUpdated")
     static let annotationDeleted = Notification.Name("annotationDeleted")
+    static let annotationSelected = Notification.Name("annotationSelected")
+    
+    // Camera control notifications
+    static let cameraMovedUp = Notification.Name("cameraMovedUp")
+    static let cameraMovedDown = Notification.Name("cameraMovedDown")
+    static let cameraMovedLeft = Notification.Name("cameraMovedLeft")
+    static let cameraMovedRight = Notification.Name("cameraMovedRight")
+    static let cameraMovedForward = Notification.Name("cameraMovedForward")
+    static let cameraMovedBackward = Notification.Name("cameraMovedBackward")
+    static let cameraReset = Notification.Name("cameraReset")
 }
 
 // Custom SCNNode subclass for annotations that includes metadata

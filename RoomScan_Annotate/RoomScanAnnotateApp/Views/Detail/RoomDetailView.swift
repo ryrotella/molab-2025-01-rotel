@@ -44,6 +44,7 @@ class PreviewItem: NSObject, QLPreviewItem {
     }
 }
 
+
 struct RoomDetailView: View {
     @EnvironmentObject var dataStore: RoomDataStore
     @State var room: RoomModel
@@ -54,6 +55,9 @@ struct RoomDetailView: View {
     @State private var showingExportOptions = false
     @State private var isInAnnotationMode = false
     
+    // Add this state property to track annotations to delete
+    @State private var annotationToDelete: UUID? = nil
+    
     var body: some View {
         VStack {
             // 3D Room View
@@ -61,10 +65,13 @@ struct RoomDetailView: View {
                 RoomModelView(room: $room,
                               selectedAnnotation: $selectedAnnotation,
                               isInAnnotationMode: $isInAnnotationMode,
+                              annotationToDelete: $annotationToDelete,
                               onTapToAddAnnotation: { position in
                                   addAnnotation(at: position)
-                              })
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                              }
+                    )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
                 
                 if isInAnnotationMode {
                     VStack {
@@ -98,6 +105,24 @@ struct RoomDetailView: View {
                     }
                     .padding()
                 }
+                // Add camera controls in the bottom right
+                    VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        CameraControlView(
+                            onMoveUp: { NotificationCenter.default.post(name: .cameraMovedUp, object: nil) },
+                            onMoveDown: { NotificationCenter.default.post(name: .cameraMovedDown, object: nil) },
+                            onMoveLeft: { NotificationCenter.default.post(name: .cameraMovedLeft, object: nil) },
+                            onMoveRight: { NotificationCenter.default.post(name: .cameraMovedRight, object: nil) },
+                            onMoveForward: { NotificationCenter.default.post(name: .cameraMovedForward, object: nil) },
+                            onMoveBackward: { NotificationCenter.default.post(name: .cameraMovedBackward, object: nil) },
+                            onReset: { NotificationCenter.default.post(name: .cameraReset, object: nil) }
+                        )
+                    }
+                }
+            
+                
             }
             
             // Annotation List
@@ -123,35 +148,81 @@ struct RoomDetailView: View {
                 } else {
                     List {
                         ForEach(room.annotations) { annotation in
-                            HStack {
-                                Circle()
-                                    .fill(annotation.color.color)
-                                    .frame(width: 16, height: 16)
-                                
-                                Text(annotation.text)
-                                
-                                Spacer()
-                                
-                                Button(action: {
+                            VStack(alignment: .leading) {
+                                HStack {
+                                    Circle()
+                                        .fill(annotation.color.color)
+                                        .frame(width: 16, height: 16)
+                                    
+                                    Text(annotation.text)
+                                        .lineLimit(1)
+                                    
+                                    Spacer()
+                                    
+                                    // Edit button - with explicitly separated action and view
+                                   Button(action: {
+                                       print("Edit button tapped for annotation: \(annotation.id)")
+                                       selectedAnnotation = annotation
+                                       newAnnotationText = annotation.text
+                                       annotationColor = annotation.color
+                                       showingAnnotationEditor = true
+                                   }) {
+                                       label: do {
+                                           Text("Edit")
+                                               .padding(.horizontal, 8)
+                                               .padding(.vertical, 4)
+                                               .background(Color.blue)
+                                               .foregroundColor(.white)
+                                               .cornerRadius(4)
+                                       }
+                                   }
+                                   .buttonStyle(PlainButtonStyle()) // Ensure button style doesn't interfere
+                                    
+                                    // Delete button - with explicitly separated action and view
+                                    Button( action: {
+                                        // Set up an alert to confirm deletion
+                                        selectedAnnotation = annotation
+                                        // Show alert asking for confirmation
+                                        let alert = UIAlertController(
+                                            title: "Delete Annotation",
+                                            message: "Are you sure you want to delete this annotation?",
+                                            preferredStyle: .alert
+                                        )
+                                        
+                                        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+                                        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in
+                                            deleteAnnotation(annotation)
+                                        })
+                                        
+                                        // Present the alert
+                                        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                                           let rootVC = windowScene.windows.first?.rootViewController {
+                                            rootVC.present(alert, animated: true)
+                                        }
+                                    }){
+                                    label: do {
+                                        Text("Delete")
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.red)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(4)
+                                    }
+                                    }
+                                    .buttonStyle(PlainButtonStyle()) // Ensure button style doesn't interfere
+
+                                }
+                                .padding(.vertical, 4)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    // Just navigate to the annotation when the row is tapped
                                     selectedAnnotation = annotation
-                                    newAnnotationText = annotation.text
-                                    annotationColor = annotation.color
-                                    showingAnnotationEditor = true
-                                }) {
-                                    Image(systemName: "pencil")
-                                        .foregroundColor(.blue)
+                                    NotificationCenter.default.post(
+                                        name: .annotationSelected,
+                                        object: nil,
+                                        userInfo: ["annotationId": annotation.id]
+                                    )
                                 }
-                                
-                                Button(action: {
-                                    deleteAnnotation(annotation)
-                                }) {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red)
-                                }
-                            }
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedAnnotation = annotation
                             }
                         }
                     }
@@ -197,11 +268,11 @@ struct RoomDetailView: View {
                 }
                 
                 Section(header: Text("Color")) {
-                    HStack {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 50))]) {
                         ForEach(AnnotationColor.allCases, id: \.self) { color in
                             Circle()
                                 .fill(color.color)
-                                .frame(width: 30, height: 30)
+                                .frame(width: 40, height: 40)
                                 .overlay(
                                     Circle()
                                         .stroke(color == annotationColor ? Color.blue : Color.clear, lineWidth: 3)
@@ -216,6 +287,7 @@ struct RoomDetailView: View {
             .navigationTitle("Edit Annotation")
             .navigationBarItems(
                 leading: Button("Cancel") {
+                    // Just dismiss the editor without making changes
                     showingAnnotationEditor = false
                 },
                 trailing: Button("Save") {
@@ -248,28 +320,58 @@ struct RoomDetailView: View {
         isInAnnotationMode = false
     }
     
+    //something wrong here
     // Update an existing annotation
     func updateAnnotation(_ annotation: Annotation) {
-        if let index = room.annotations.firstIndex(where: { $0.id == annotation.id }) {
-            var updated = annotation
-            updated.text = newAnnotationText
-            updated.color = annotationColor
-            
-            room.annotations[index] = updated
-            dataStore.updateRoom(room)
-        }
+        guard let index = room.annotations.firstIndex(where: { $0.id == annotation.id }) else {
+               print("Error: Could not find annotation to update")
+               return
+           }
+           
+       // Create an updated copy of the annotation
+       var updatedAnnotation = room.annotations[index]
+       updatedAnnotation.text = newAnnotationText
+       updatedAnnotation.color = annotationColor
+       
+       // Update the annotation in the array
+       room.annotations[index] = updatedAnnotation
+       
+       // Update the room in the data store
+       dataStore.updateRoom(room)
+       
+       // Update the selected annotation reference
+       selectedAnnotation = updatedAnnotation
+       
+       print("Successfully updated annotation: \(updatedAnnotation.text)")
     }
     
     // Delete an annotation
     func deleteAnnotation(_ annotation: Annotation) {
+        print("Deleting annotation with ID: \(annotation.id)")
+        
+//        // Set the annotation to delete first
+//        annotationToDelete = annotation.id
+        
+        // Remove from the annotations array
         room.annotations.removeAll(where: { $0.id == annotation.id })
+        
+        // Update the room in the data store
         dataStore.updateRoom(room)
         
+        // Clear selected annotation if it was the one deleted
         if selectedAnnotation?.id == annotation.id {
             selectedAnnotation = nil
         }
+        
+        // Notify that an annotation was deleted
+           NotificationCenter.default.post(
+               name: .annotationDeleted,
+               object: nil,
+               userInfo: ["annotationId": annotation.id]
+           )
+        
+        print("Annotation deleted. Remaining count: \(room.annotations.count)")
     }
-    
     // Preview the USDZ file
     func previewUSDZ() {
         guard let usdzPath = room.usdzFilePath else { return }
@@ -308,3 +410,5 @@ struct RoomDetailView: View {
         }
     }
 }
+
+
