@@ -58,6 +58,11 @@ struct RoomDetailView: View {
     // Add this state property to track annotations to delete
     @State private var annotationToDelete: UUID? = nil
     
+    // Add new skybox state
+    @State private var skyboxStyle: SkyboxStyle = .black
+    @State private var customSkyboxColor: Color = .gray
+    @State private var showingSkyboxPicker = false
+    
     @State private var isEditingTitle = false
     @State private var newRoomTitle = ""
     
@@ -65,6 +70,12 @@ struct RoomDetailView: View {
     @State private var cameraOffsetX: Double = 1.2
     @State private var cameraOffsetY: Double = 0.8
     @State private var cameraOffsetZ: Double = 1.2
+    
+    init(room: RoomModel) {
+        self._room = State(initialValue: room)
+        self._skyboxStyle = State(initialValue: room.getSkyboxStyleEnum())
+        self._customSkyboxColor = State(initialValue: room.getCustomSkyboxColor())
+    }
     
     var body: some View {
         VStack {
@@ -76,7 +87,10 @@ struct RoomDetailView: View {
                               annotationToDelete: $annotationToDelete,
                               onTapToAddAnnotation: { position in
                                   addAnnotation(at: position)
-                              }
+                              },
+                              skyboxStyle: $skyboxStyle,
+                              customSkyboxColor: $customSkyboxColor
+
                     )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
@@ -311,6 +325,14 @@ struct RoomDetailView: View {
                 }
             }
         }
+        // Add a skybox button to your toolbar
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button(action: {
+                showingSkyboxPicker = true
+            }) {
+                Image(systemName: "square.3.stack.3d")
+            }
+        }
             // Add edit title button
          ToolbarItem(placement: .navigationBarTrailing) {
              if !isEditingTitle {
@@ -332,6 +354,16 @@ struct RoomDetailView: View {
      }
         .sheet(isPresented: $showingAnnotationEditor) {
             annotationEditorView
+        }
+        .sheet(isPresented: $showingSkyboxPicker) {
+            SkyboxPickerView(
+                skyboxStyle: $skyboxStyle,
+                customSkyboxColor: $customSkyboxColor,
+                isPresented: $showingSkyboxPicker,
+                onSave: {
+                    saveSkyboxPreferences()
+                }
+            )
         }
         .actionSheet(isPresented: $showingExportOptions) {
             ActionSheet(title: Text("Export Options"), buttons: [
@@ -357,6 +389,26 @@ struct RoomDetailView: View {
            }
            isEditingTitle = false
        }
+    
+    private func saveSkyboxPreferences() {
+        // Update the room model
+        room.skyboxStyle = skyboxStyle.rawValue
+        
+        // Convert Color to Data for storage 
+        let uiColor = UIColor(customSkyboxColor)
+        do {
+            let colorData = try NSKeyedArchiver.archivedData(withRootObject: uiColor,
+                                                             requiringSecureCoding: false)
+            room.customSkyboxColorData = colorData
+        } catch {
+            print("Error saving color data: \(error)")
+        }
+        
+        // Save to data store
+        dataStore.updateRoom(room)
+    }
+    
+
     
     private var annotationEditorView: some View {
         NavigationView {
@@ -516,5 +568,4 @@ struct RoomDetailView: View {
         }
     }
 }
-
 

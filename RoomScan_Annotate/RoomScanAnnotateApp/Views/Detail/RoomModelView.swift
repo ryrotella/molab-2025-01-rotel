@@ -16,6 +16,10 @@ struct RoomModelView: UIViewRepresentable {
     // Used for communication between parent RoomDetailView and this view
     var onTapToAddAnnotation: ((SIMD3<Float>) -> Void)?
     
+    // Add skybox binding options
+    @Binding var skyboxStyle: SkyboxStyle
+    @Binding var customSkyboxColor: Color // For custom color option
+    
 
     
     func makeUIView(context: Context) -> SCNView {
@@ -24,6 +28,10 @@ struct RoomModelView: UIViewRepresentable {
         sceneView.allowsCameraControl = true
         sceneView.autoenablesDefaultLighting = true
         sceneView.backgroundColor = .systemBackground
+        
+        // Apply the skybox
+        updateSkybox(sceneView)
+        
         
         // Set up initial camera
         let cameraNode = SCNNode()
@@ -124,6 +132,9 @@ struct RoomModelView: UIViewRepresentable {
         // Store the current camera position and orientation
             let currentCamera = sceneView.pointOfView?.clone()
         
+            // Update the skybox
+            updateSkybox(sceneView)
+            
         // First, remove all existing annotation nodes to prevent duplicates
             let existingAnnotationNodes = SceneHelper.findAnnotationNodes(in: sceneView.scene!.rootNode)
         
@@ -179,10 +190,109 @@ struct RoomModelView: UIViewRepresentable {
                 let roomNode = SCNReferenceNode(url: usdzPath)
                 roomNode?.load()
                 if let roomNode = roomNode {
+                    // Apply transparency to all wall geometries
+                    applyTransparencyToWalls(node: roomNode)
                     sceneView.scene?.rootNode.addChildNode(roomNode)
                 }
             }
         }
+    
+    // Helper function to recursively apply transparency to walls
+    private func applyTransparencyToWalls(node: SCNNode) {
+        // Check if the node name contains "wall" or similar identifiers
+        if node.name?.lowercased().contains("wall") == true ||
+           node.name?.lowercased().contains("surface") == true {
+            // Apply transparency to this node's geometry
+            if let geometry = node.geometry {
+                // Iterate through all materials and make them semi-transparent
+                for material in geometry.materials {
+                    // Set the material's transparency
+                    material.transparency = 0.6  // 0.0 is fully opaque, 1.0 is fully transparent
+                    
+                    // Or alternatively set the alpha component of the diffuse color
+                    if let diffuseColor = material.diffuse.contents as? UIColor {
+                        material.diffuse.contents = diffuseColor.withAlphaComponent(0.4)
+                    }
+                    
+                    // Enable depth write for better rendering of transparent objects
+                    material.writesToDepthBuffer = true
+                    material.readsFromDepthBuffer = true
+                }
+            }
+        }
+        
+        // Recursively process child nodes
+        for childNode in node.childNodes {
+            applyTransparencyToWalls(node: childNode)
+        }
+    }
+    
+    func createTextWithBackground(text: String, position: SCNVector3, color: UIColor) -> SCNNode {
+        // Create parent node
+        let containerNode = SCNNode()
+        containerNode.position = position
+        
+        // Create text geometry
+        let textGeometry = SCNText(string: text, extrusionDepth: 0.01)
+        textGeometry.font = UIFont.boldSystemFont(ofSize: 0.5) // Larger, bolder font
+        textGeometry.firstMaterial?.diffuse.contents = UIColor.white // White text for better contrast
+        textGeometry.alignmentMode = CATextLayerAlignmentMode.center.rawValue
+        textGeometry.firstMaterial?.isDoubleSided = true
+        
+        // Create text node
+        let textNode = SCNNode(geometry: textGeometry)
+        
+        // Calculate bounding box
+        let (min, max) = textGeometry.boundingBox
+        let width = max.x - min.x
+        let height = max.y - min.y
+        
+        // Center the text
+        textNode.pivot = SCNMatrix4MakeTranslation((max.x + min.x) / 2, (max.y + min.y) / 2, min.z)
+        textNode.position = SCNVector3Zero
+        
+        // Create background node - with generous padding
+        let backgroundGeometry = SCNPlane(width: CGFloat(width * 1.2), height: CGFloat(height * 1.5))
+        backgroundGeometry.firstMaterial?.diffuse.contents = color.withAlphaComponent(0.8) // Semi-transparent background
+        backgroundGeometry.firstMaterial?.isDoubleSided = true
+        backgroundGeometry.cornerRadius = 0.05 // Rounded corners
+        
+        let backgroundNode = SCNNode(geometry: backgroundGeometry)
+        backgroundNode.position = SCNVector3(0, 0, -0.01) // Positioned just behind text
+        
+        // Add both to container
+        containerNode.addChildNode(backgroundNode)
+        containerNode.addChildNode(textNode)
+        
+        // Add billboard constraint to always face camera
+        let constraint = SCNBillboardConstraint()
+        constraint.freeAxes = .all
+        containerNode.constraints = [constraint]
+        
+        return containerNode
+    }
+    
+    // New function to update the skybox
+    private func updateSkybox(_ sceneView: SCNView) {
+        switch skyboxStyle {
+        case .black, .sky, .night, .space:
+            // For simple color backgrounds
+            if let color = skyboxStyle.getSkyboxContent() as? UIColor {
+                sceneView.backgroundColor = color
+                sceneView.scene?.background.contents = nil
+            }
+        case .gradient:
+            // For image-based gradient
+            if let image = skyboxStyle.getSkyboxContent() as? UIImage {
+                sceneView.scene?.background.contents = image
+            }
+        case .custom:
+            // Convert SwiftUI Color to UIColor
+            let uiColor = UIColor(customSkyboxColor)
+            sceneView.backgroundColor = uiColor
+            sceneView.scene?.background.contents = nil
+        }
+    }
     
     private func updateAnnotations(_ sceneView: SCNView) {
             // Remove existing annotation nodes
@@ -234,46 +344,16 @@ struct RoomModelView: UIViewRepresentable {
         let sphereNode = SCNNode(geometry: sphere)
         sphereNode.name = "sphere"
         
-        // Add text label
-        let textGeometry = SCNText(string: annotation.text, extrusionDepth: 0.01)
-        textGeometry.font = UIFont.systemFont(ofSize: 1.0)
-        textGeometry.firstMaterial?.diffuse.contents = annotation.color.uiColor
+        // Create text with background
+        let textNode = createTextWithBackground(
+            text: annotation.text,
+            position: SCNVector3(0, 0.2, 0), // Position above the sphere
+            color: annotation.color.uiColor
+        )
+        textNode.name = "textGroup"
         
-        let textNode = SCNNode(geometry: textGeometry)
-        textNode.name = "text"
-        textNode.scale = SCNVector3(0.3, 0.3, 0.3)
-        
-        // Center the text
-        let minBound = textGeometry.boundingBox.min
-        let maxBound = textGeometry.boundingBox.max
-        let textWidth = CGFloat(maxBound.x - minBound.x)
-        let textHeight = CGFloat(maxBound.y - minBound.y)
-        textNode.pivot = SCNMatrix4MakeTranslation((maxBound.x - minBound.x)/2, 0, 0)
-        
-        // Create a background plane for the text
-        let backgroundPlane = SCNPlane(width: textWidth + 0.5, height: textHeight + 0.5)
-        backgroundPlane.cornerRadius = 0.2
-        
-        // Set the background color - semi-transparent dark color works well
-        backgroundPlane.firstMaterial?.diffuse.contents = UIColor.black.withAlphaComponent(0.9)
-        let backgroundNode = SCNNode(geometry: backgroundPlane)
-        backgroundNode.name = "textBackground"
-        
-        // Position the background behind the text
-        backgroundNode.position = SCNVector3(Float(textWidth)/2, Float(textHeight)/2, -0.01)
-
-        // Group the text and its background
-        let textGroupNode = SCNNode()
-        textGroupNode.name = "textGroup"
-        textGroupNode.addChildNode(backgroundNode)
-        textGroupNode.addChildNode(textNode)
-        
-        // Position the text above the sphere
-        textNode.position = SCNVector3(0, 0.2, 0.3)
-        
-        // Create a billboard constraint so text always faces the camera
-        let billboardConstraint = SCNBillboardConstraint()
-        textNode.constraints = [billboardConstraint]
+        // Add to parent node
+        node.addChildNode(textNode)
         
         // Add both to the parent node
         node.addChildNode(sphereNode)

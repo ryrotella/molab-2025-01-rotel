@@ -9,6 +9,7 @@ import UIKit
 import RoomPlan
 import SceneKit
 import ARKit
+import SwiftUI
 
 // RoomModel.swift - Data model for a room scan
 struct RoomModel: Identifiable, Codable {
@@ -20,6 +21,9 @@ struct RoomModel: Identifiable, Codable {
     
     // Path to the saved USDZ file
     var usdzFilePath: URL?
+    
+    var skyboxStyle: String = "black" // Store as String for Codable compatibility
+    var customSkyboxColorData: Data? // Store color as Data
     
     // Temporary non-serializable properties
     var capturedRoom: CapturedRoom? {
@@ -59,6 +63,20 @@ struct RoomModel: Identifiable, Codable {
         self.creationDate = Date()
         self.annotations = []
         self.capturedRoom = capturedRoom
+    }
+    
+    // Helper to convert between SkyboxStyle enum and String
+    func getSkyboxStyleEnum() -> SkyboxStyle {
+        return SkyboxStyle(rawValue: skyboxStyle) ?? .black
+    }
+    
+    // Helper to convert between Color and Data
+    func getCustomSkyboxColor() -> Color {
+        if let colorData = customSkyboxColorData,
+           let uiColor = try? NSKeyedUnarchiver.unarchivedObject(ofClass: UIColor.self, from: colorData) {
+            return Color(uiColor)
+        }
+        return Color.gray
     }
 }
 
