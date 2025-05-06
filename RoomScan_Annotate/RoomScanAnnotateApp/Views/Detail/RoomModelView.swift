@@ -192,7 +192,7 @@ struct RoomModelView: UIViewRepresentable {
                 if let roomNode = roomNode {
                     // Apply transparency to all wall geometries
                     applyTransparencyToWalls(node: roomNode)
-                    roomNode.scale = SCNVector3(1.3, 1.3, 1.3)
+                    //roomNode.scale = SCNVector3(1.3, 1.3, 1.3)
                     sceneView.scene?.rootNode.addChildNode(roomNode)
                 }
             }
