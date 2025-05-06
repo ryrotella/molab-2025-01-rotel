@@ -74,19 +74,19 @@ struct RoomModelView: UIViewRepresentable {
             )
         
         // Add camera control notification observers
-            NotificationCenter.default.addObserver(
-                context.coordinator,
-                selector: #selector(Coordinator.moveCameraUp),
-                name: .cameraMovedUp,
-                object: nil
-            )
-            
-            NotificationCenter.default.addObserver(
-                context.coordinator,
-                selector: #selector(Coordinator.moveCameraDown),
-                name: .cameraMovedDown,
-                object: nil
-            )
+//            NotificationCenter.default.addObserver(
+//                context.coordinator,
+//                selector: #selector(Coordinator.moveCameraUp),
+//                name: .cameraMovedUp,
+//                object: nil
+//            )
+//            
+//            NotificationCenter.default.addObserver(
+//                context.coordinator,
+//                selector: #selector(Coordinator.moveCameraDown),
+//                name: .cameraMovedDown,
+//                object: nil
+//            )
             
             NotificationCenter.default.addObserver(
                 context.coordinator,
@@ -192,6 +192,7 @@ struct RoomModelView: UIViewRepresentable {
                 if let roomNode = roomNode {
                     // Apply transparency to all wall geometries
                     applyTransparencyToWalls(node: roomNode)
+                    roomNode.scale = SCNVector3(1.3, 1.3, 1.3)
                     sceneView.scene?.rootNode.addChildNode(roomNode)
                 }
             }
@@ -610,13 +611,13 @@ struct RoomModelView: UIViewRepresentable {
             }
         }
         
-        @objc func moveCameraUp() {
-            moveCamera(direction: SCNVector3(0, 0.3, 0))
-        }
-
-        @objc func moveCameraDown() {
-            moveCamera(direction: SCNVector3(0, -0.3, 0))
-        }
+//        @objc func moveCameraUp() {
+//            moveCamera(direction: SCNVector3(0, 0.3, 0))
+//        }
+//
+//        @objc func moveCameraDown() {
+//            moveCamera(direction: SCNVector3(0, -0.3, 0))
+//        }
 
         @objc func moveCameraLeft() {
             moveCamera(direction: SCNVector3(-0.3, 0, 0))
@@ -686,14 +687,41 @@ struct RoomModelView: UIViewRepresentable {
             }
         }
         
+//        private func moveCamera(direction: SCNVector3) {
+//            guard let camera = sceneView?.pointOfView else { return }
+//            
+//            let currentPosition = camera.position
+//            let newPosition = SCNVector3(
+//                currentPosition.x + direction.x,
+//                currentPosition.y + direction.y,
+//                currentPosition.z + direction.z
+//            )
+//            
+//            // Animate camera movement
+//            SCNTransaction.begin()
+//            SCNTransaction.animationDuration = 0.2
+//            camera.position = newPosition
+//            SCNTransaction.commit()
+//        }
         private func moveCamera(direction: SCNVector3) {
             guard let camera = sceneView?.pointOfView else { return }
             
+            // Create a transformation matrix based on the camera's orientation
+            let rotation = camera.transform
+            
+            // Calculate the movement vector relative to camera orientation
+            let cameraRelativeDirection = SCNVector3(
+                direction.x * rotation.m11 + direction.y * rotation.m12 + direction.z * rotation.m13,
+                direction.x * rotation.m21 + direction.y * rotation.m22 + direction.z * rotation.m23,
+                direction.x * rotation.m31 + direction.y * rotation.m32 + direction.z * rotation.m33
+            )
+            
+            // Apply the movement
             let currentPosition = camera.position
             let newPosition = SCNVector3(
-                currentPosition.x + direction.x,
-                currentPosition.y + direction.y,
-                currentPosition.z + direction.z
+                currentPosition.x + cameraRelativeDirection.x,
+                currentPosition.y + cameraRelativeDirection.y,
+                currentPosition.z + cameraRelativeDirection.z
             )
             
             // Animate camera movement

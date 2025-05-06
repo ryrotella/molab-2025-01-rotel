@@ -133,8 +133,8 @@ struct RoomDetailView: View {
                     HStack {
                         Spacer()
                         CameraControlView(
-                            onMoveUp: { NotificationCenter.default.post(name: .cameraMovedUp, object: nil) },
-                            onMoveDown: { NotificationCenter.default.post(name: .cameraMovedDown, object: nil) },
+//                            onMoveUp: { NotificationCenter.default.post(name: .cameraMovedUp, object: nil) },
+//                            onMoveDown: { NotificationCenter.default.post(name: .cameraMovedDown, object: nil) },
                             onMoveLeft: { NotificationCenter.default.post(name: .cameraMovedLeft, object: nil) },
                             onMoveRight: { NotificationCenter.default.post(name: .cameraMovedRight, object: nil) },
                             onMoveForward: { NotificationCenter.default.post(name: .cameraMovedForward, object: nil) },

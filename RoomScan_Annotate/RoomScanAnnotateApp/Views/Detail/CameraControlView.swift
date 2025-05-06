@@ -13,8 +13,8 @@ import QuickLook
 
 
 struct CameraControlView: View {
-    var onMoveUp: () -> Void
-    var onMoveDown: () -> Void
+//    var onMoveUp: () -> Void
+//    var onMoveDown: () -> Void
     var onMoveLeft: () -> Void
     var onMoveRight: () -> Void
     var onMoveForward: () -> Void
@@ -26,8 +26,16 @@ struct CameraControlView: View {
             // Top row - Up button
             HStack {
                 Spacer()
-                Button(action: onMoveUp) {
-                    Image(systemName: "arrow.up")
+//                Button(action: onMoveUp) {
+//                    Image(systemName: "arrow.up")
+//                        .frame(width: 44, height: 44)
+//                        .background(Color.black.opacity(0.5))
+//                        .foregroundColor(.white)
+//                        .cornerRadius(8)
+//                }
+                
+                Button(action: onMoveForward) {
+                    Image(systemName: "arrow.up.to.line")
                         .frame(width: 44, height: 44)
                         .background(Color.black.opacity(0.5))
                         .foregroundColor(.white)
@@ -69,23 +77,17 @@ struct CameraControlView: View {
             
             // Bottom row - Down, Forward, Backward buttons
             HStack {
-                Button(action: onMoveDown) {
-                    Image(systemName: "arrow.down")
-                        .frame(width: 44, height: 44)
-                        .background(Color.black.opacity(0.5))
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
-                
+//                Button(action: onMoveDown) {
+//                    Image(systemName: "arrow.down")
+//                        .frame(width: 44, height: 44)
+//                        .background(Color.black.opacity(0.5))
+//                        .foregroundColor(.white)
+//                        .cornerRadius(8)
+//                }
+//                
                 Spacer()
                 
-                Button(action: onMoveForward) {
-                    Image(systemName: "arrow.up.to.line")
-                        .frame(width: 44, height: 44)
-                        .background(Color.black.opacity(0.5))
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
+            
                 
                 Button(action: onMoveBackward) {
                     Image(systemName: "arrow.down.to.line")
@@ -94,6 +96,7 @@ struct CameraControlView: View {
                         .foregroundColor(.white)
                         .cornerRadius(8)
                 }
+            Spacer()
             }
         }
         .padding(20)
